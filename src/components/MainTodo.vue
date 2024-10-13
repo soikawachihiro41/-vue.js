@@ -1,98 +1,83 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-const todo = ref('');
-const todoList = ref<{ id: number; task: string }[]>([
-]);
+import { ref } from 'vue'
 
-const ls = localStorage.todoList;
+import ButtonAdd from '@/components/ButtonAdd.vue'
+import ButtonDel from '@/components/ButtonDel.vue'
+import ButtonEdit from '@/components/ButtonEdit.vue'
+import ButtonShow from '@/components/ButtonShow.vue'
+import { useTodoList } from '@/composables/useTodoList'
 
-todoList.value = ls ? JSON.parse(ls) : [];
+const todo = ref<string | undefined>()
+const isEdit = ref(false)
+const { todoList, add, show, edit, del, check, countFin } = useTodoList()
 
 const addTodo = () => {
-
-  const id = new Date().getTime();
-
-
-  todoList.value.push({ id: id, task: todo.value });
-
-  localStorage.todoList = JSON.stringify(todoList.value);
-
-  todo.value = '';
-};
-
-const isEdit = ref(false);
-let editId = -1;
+  if (!todo.value) return
+  add(todo.value)
+  todo.value = ''
+}
 
 const showTodo = (id: number) => {
-
-  const findTodo = todoList.value.find((todo) => todo.id === id);
-
-  if (findTodo) {
-
-    todo.value = findTodo.task;
-    isEdit.value = true;
-    editId = id;
-
+  todo.value = show(id)
+  if (todo.value) {
+    isEdit.value = true
   }
-};
+}
+
 const editTodo = () => {
-  const findTodo = todoList.value.find((todo) => todo.id === editId);
-  const idx = todoList.value.findIndex((todo) => todo.id === editId);
-
-  if (findTodo) {
-    findTodo.task = todo.value;
-    todoList.value.splice(idx, 1, findTodo);
-    localStorage.todoList = JSON.stringify(todoList.value);
-    isEdit.value = false;
-    editId = -1;
-    todo.value = '';
-  }
-};
+  if (!todo.value) return
+  edit(todo.value)
+  isEdit.value = false
+  todo.value = ''
+}
 
 const deleteTodo = (id: number) => {
-  isEdit.value = false;
-  editId = -1;
-  todo.value = '';
-  const findTodo = todoList.value.find((todo) => todo.id === id);
-  const idx = todoList.value.findIndex((todo) => todo.id === id);
+  isEdit.value = false
+  del(id)
+}
 
-  if (findTodo) {
-  const delMsg = '「'+ findTodo.task + '」を削除しますか？';
-  if (!confirm(delMsg)) return;
-    todoList.value.splice(idx, 1);
-    localStorage.todoList = JSON.stringify(todoList.value);
-  }
-};
+const changeCheck = (id: number) => {
+  check(id)
+}
 
+const countFinMethod = () => {
+  console.log('method')
+  const finArr = todoList.value.filter((todo) => todo.checked)
+  return finArr.length
+}
+
+const test = (str: string, id: number) => {
+  console.log('test', str, id)
+}
 </script>
 
 <template>
   <div class="box_input">
-    <input type="text"
-     class="todo_input" 
-     v-model="todo"
-     placeholder="+ TODOを入力"
-    />
-    <button class="btn green" @click="editTodo" v-show="isEdit">変更</button>
-    <button class="btn" @click="addTodo" v-show="!isEdit">追加</button> 
+    <input type="text" class="todo_input" v-model="todo" placeholder="+ TODOを入力" />
+    <ButtonEdit @edit-click="editTodo" v-if="isEdit" />
+    <ButtonAdd @add-click="addTodo" v-else />
   </div>
   <div class="box_list">
     <div class="todo_list" v-for="todo in todoList" :key="todo.id">
-      <div class="todo">
-        <input type="checkbox" class="check" />
+      <div class="todo" :class="{ fin: todo.checked }">
+        <input
+          type="checkbox"
+          class="check"
+          @change="changeCheck(todo.id)"
+          :checked="todo.checked"
+        />
         <label>{{ todo.task }}</label>
       </div>
       <div class="btns">
-        <button class="btn green" @click="showTodo(todo.id)">編</button>
-        <button class="btn pink" @click="deleteTodo(todo.id)">削</button>
+        <ButtonShow @on-click="showTodo(todo.id)" />
+        <ButtonDel @on-click="deleteTodo(todo.id)" />
       </div>
     </div>
   </div>
-  <div v-for="(example, index) in todoExample" :key="index">
-    <p>{{ index }}.{{ example }}</p>
+  <div class="finCount">
+    <span>完了:{{ countFin }}</span>
+    <span>未完了:{{ todoList.length - countFin }}</span>
   </div>
-
-
 </template>
 
 <style scoped>
@@ -147,5 +132,14 @@ const deleteTodo = (id: number) => {
 }
 .pink {
   background-color: #ff4081;
+}
+.fin {
+  color: #777;
+  text-decoration: line-through;
+  background-color: #ddd;
+}
+.finCount {
+  margin-top: 8px;
+  font-size: 0.8em;
 }
 </style>
